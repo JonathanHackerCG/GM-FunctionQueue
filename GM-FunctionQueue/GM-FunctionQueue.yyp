@@ -18,6 +18,7 @@
     "IDEVersion": "2023.11.1.129",
   },
   "resources": [
+    {"id":{"name":"scr_function_queue","path":"scripts/scr_function_queue/scr_function_queue.yy",},},
     {"id":{"name":"rm_initialize","path":"rooms/rm_initialize/rm_initialize.yy",},},
   ],
   "RoomOrderNodes": [
