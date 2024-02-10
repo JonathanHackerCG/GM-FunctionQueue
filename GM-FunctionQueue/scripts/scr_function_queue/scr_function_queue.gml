@@ -1,13 +1,26 @@
 /// @func FunctionQueue():
 /// @desc Constructor for FunctionQueue.
 ///	Last updated on February 2nd, 2024.
-function FunctionQueue() constructor
+/// @arg	{Id.Instance} [owner]
+function FunctionQueue(_owner = noone) constructor
 {
 	#region PRIVATE
 	__items = [];
-	__instance = noone;
+	__instance = _owner;
 	__pos = 0;
 	__length = 0;
+	#endregion
+	#region __Item(function, arguments, tag);
+	/// @func __Item(function, arguments, tag);
+	/// @arg	{Function} function
+	/// @arg	{Array} arguments
+	/// @arg	{String|Any} tag
+	static __Item = function(_function, _arguments, _tag) constructor
+	{
+		func = _function;
+		args = _arguments;
+		tags = _tag;
+	}
 	#endregion
 	#region __convert_func(function);
 	/// @func __convert_func(function):
@@ -54,16 +67,14 @@ function FunctionQueue() constructor
 		}
 	}
 	#endregion
-	#region __Item(function, arguments, tag);
-	/// @func __Item(function, arguments, tag);
-	/// @arg	{Function} function
-	/// @arg	{Array} arguments
-	/// @arg	{String|Any} tag
-	static __Item = function(_function, _arguments, _tag) constructor
+	#region __set_owner(instance);
+	/// @func set_owner(instance);
+	/// @desc Sets an instance to perform the functions.
+	/// Functions queued will be called as methods attached to this instance.
+	/// @arg	{Id.Instance} instance
+	static set_owner = function(_instance)
 	{
-		func = _function;
-		args = _arguments;
-		tags = _tag;
+		__instance = _instance;
 	}
 	#endregion
 	
@@ -76,14 +87,6 @@ function FunctionQueue() constructor
 		return __length;
 	}
 	#endregion
-	#region reset();
-	/// @func reset():
-	/// @desc Go to the start of the FunctionQueue without changing the contents.
-	static reset = function()
-	{
-		__pos = -1;
-	}
-	#endregion
 	#region is_empty();
 	/// @func is_empty():
 	/// @desc Returns true if the FunctionQueue is empty.
@@ -91,6 +94,14 @@ function FunctionQueue() constructor
 	static is_empty = function()
 	{
 		return (__length == 0);
+	}
+	#endregion
+	#region reset();
+	/// @func reset():
+	/// @desc Go to the start of the FunctionQueue without changing the contents.
+	static reset = function()
+	{
+		__pos = -1;
 	}
 	#endregion
 	#region clear();
@@ -111,16 +122,6 @@ function FunctionQueue() constructor
 		array_delete(__items, __pos, 1);
 		__pos--;
 		__length--;
-	}
-	#endregion
-	#region set_instance(instance);
-	/// @func set_instance(instance);
-	/// @desc Sets an instance to perform the functions.
-	/// Functions queued will be called as methods attached to this instance.
-	/// @arg	{Id.Instance} instance
-	static set_instance = function(_instance)
-	{
-		__instance = _instance;
 	}
 	#endregion
 	
