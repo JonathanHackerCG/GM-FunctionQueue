@@ -10,7 +10,10 @@
     "name": "Default",
   },
   "defaultScriptType": 1,
-  "Folders": [],
+  "Folders": [
+    {"resourceType":"GMFolder","resourceVersion":"1.0","name":"Examples","folderPath":"folders/Examples.yy",},
+    {"resourceType":"GMFolder","resourceVersion":"1.0","name":"Player","folderPath":"folders/Examples/Player.yy",},
+  ],
   "IncludedFiles": [],
   "isEcma": false,
   "LibraryEmitters": [],
@@ -19,6 +22,10 @@
   },
   "resources": [
     {"id":{"name":"scr_function_queue","path":"scripts/scr_function_queue/scr_function_queue.yy",},},
+    {"id":{"name":"spr_example_player","path":"sprites/spr_example_player/spr_example_player.yy",},},
+    {"id":{"name":"obj_control","path":"objects/obj_control/obj_control.yy",},},
+    {"id":{"name":"obj_example_player","path":"objects/obj_example_player/obj_example_player.yy",},},
+    {"id":{"name":"scr_examples","path":"scripts/scr_examples/scr_examples.yy",},},
     {"id":{"name":"rm_initialize","path":"rooms/rm_initialize/rm_initialize.yy",},},
   ],
   "RoomOrderNodes": [

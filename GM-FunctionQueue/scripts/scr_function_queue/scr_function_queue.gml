@@ -19,7 +19,7 @@ function FunctionQueue(_owner = noone) constructor
 	{
 		func = _function;
 		args = _arguments;
-		tags = _tag;
+		tag  = _tag;
 	}
 	#endregion
 	#region __convert_func(function);
