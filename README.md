@@ -3,6 +3,8 @@ A GameMaker data structure for calling code in order.
 
 I use this FunctionQueue for many systems, including cutscenes, turn based combat, command patterns, items/abilities, and animations.
 
+# Methods
+
 ### General
 Using the FunctionQueue.
 * `size()` Return the current length of the FunctionQueue.
@@ -26,21 +28,23 @@ Change the position of the FunctionQueue.
 * `jump_forward()` Skips to the next function in the queue.
 * `jump_to_tag(tag)` Skips to a matching tag in the queue. Returns true if it finds a matching tag.
 
-### Example
-Setup
-```javascript
-//Create
-my_fqueue = new FunctionQueue(id);
+# Examples
 
-//Step
+### Setup
+```javascript
+//CREATE
+my_fqueue = new FunctionQueue(id);
+```
+```javascript
+//STEP
 my_fqueue.update();
 ```
 
-### Example
-Following Points (I)
+### Following Points (I)
 ```javascript
-//Script
-//Defining a function to handle movement. Notice it returns true when it reaches the specified point.
+//SCRIPT
+//Defining a function to handle movement.
+//Notice it returns true when it reaches the specified point.
 function step_towards_point(_x, _y, _speed)
 {
 	var _dir = point_direction(x, y, _x, _y);
@@ -52,9 +56,11 @@ function step_towards_point(_x, _y, _speed)
 	
 	return (_disx < _speed && _disy < _speed);
 }
-
-//Step
-//Queueing step_towards_point when clicking the mouse. The instance will travel to each mouse click in order, no matter when the click happened.
+```
+```javascript
+//STEP
+//Queueing step_towards_point when clicking the mouse.
+//The instance will travel to each mouse click in order.
 if (mouse_check_button_pressed(mb_left))
 {
 	my_fqueue.insert_append(step_towards_point, [mouse_x, mouse_y, 4]);
