@@ -66,3 +66,30 @@ if (mouse_check_button_pressed(mb_left))
 	my_fqueue.insert_append(step_towards_point, [mouse_x, mouse_y, 4]);
 }
 ```
+
+### Following Points (II)
+This will queue a position like above, but will also wait for 60 frames once it reaches that point.
+```javascript
+///STEP
+if (mouse_check_button_pressed(mb_right))
+{
+	my_fqueue.insert_append(step_towards_point, [mouse_x, mouse_y, 4]);
+	my_fqueue.insert_append(function() {
+		timer = 60;
+	});
+	my_fqueue.insert_append(function() {
+		timer --;
+		return (timer == 0);
+	});
+}
+```
+If you have a timer system, it might look something like this.
+However, a timer system is beyond the scope of this library.
+```javascript
+if (mouse_check_button_pressed(mb_right))
+{
+	my_fqueue.insert_append(step_towards_point, [mouse_x, mouse_y, 4]);
+	my_fqueue.insert_append(my_timer.start, [60]);
+	my_fqueue.insert_append(my_timer.is_finished);
+}
+```
