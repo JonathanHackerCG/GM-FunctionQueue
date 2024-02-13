@@ -7,7 +7,8 @@ function FunctionQueue(_owner = noone) constructor
 	#region PRIVATE
 	__items = [];
 	__instance = _owner;
-	__pos = 0;
+	__pos = -1;
+	__pos_next_offset = 1;
 	__length = 0;
 	#endregion
 	#region __Item(function, arguments, tag);
@@ -102,6 +103,7 @@ function FunctionQueue(_owner = noone) constructor
 	static reset = function()
 	{
 		__pos = -1;
+		__pos_next_offset = 1;
 	}
 	#endregion
 	#region clear();
@@ -124,7 +126,15 @@ function FunctionQueue(_owner = noone) constructor
 		__length--;
 	}
 	#endregion
-	
+	#region get_position();
+	/// @func get_position():
+	/// @desc Returns the current position of the FunctionQueue.
+	/// @returns {Real}
+	static get_position = function()
+	{
+		return __pos;
+	}
+	#endregion
 	#region update();
 	/// @func update();
 	/// @desc Run current function and update conditionally. Returns false if the FunctionQueue is empty/idle.
@@ -133,11 +143,13 @@ function FunctionQueue(_owner = noone) constructor
 	{
 		if (is_empty())		{ return false; }
 		if (__pos == -1)	{ __pos = 0; }
+		__pos_next_offset = 1;
 		
 		var _item = __items[__pos];
 		var _func = _item.func;
 		var _args = _item.args;
 		var _done = false;
+		var _pos_init = __pos;
 		
 		if (!is_callable(_func))
 		{
@@ -152,7 +164,7 @@ function FunctionQueue(_owner = noone) constructor
 			_done = bool(__call_function_ext(_func, _args) ?? true);
 		}
 		
-		if (_done)
+		if (_done && __pos == _pos_init)
 		{
 			__pos++;
 			if (__pos >= __length)
@@ -168,6 +180,7 @@ function FunctionQueue(_owner = noone) constructor
 		}
 	}
 	#endregion
+	
 	#region insert_pos(pos, function, [arguments], [tag]);
 	/// @func insert_pos(pos, function, [arguments], [tag]);
 	/// @desc Inserts a function at a position.
@@ -179,6 +192,19 @@ function FunctionQueue(_owner = noone) constructor
 	{
 		var _item = new __Item(__convert_func(_func), _args, _tag);
 		array_insert(__items, _pos, _item);
+		__length++;
+	}
+	#endregion
+	#region insert_append(function, [arguments], [tag]);
+	/// @func insert_append(function, [arguments], [tag]):
+	/// @desc Inserts a function at the end of the FunctionQueue.
+	/// @arg	{Function} function
+	/// @arg	{Array} [arguments]
+	/// @arg	{String|Any} [tag]
+	static insert_append = function(_func, _args = undefined, _tag = undefined)
+	{
+		var _item = new __Item(__convert_func(_func), _args, _tag);
+		array_push(__items, _item);
 		__length++;
 	}
 	#endregion
@@ -202,23 +228,11 @@ function FunctionQueue(_owner = noone) constructor
 	/// @arg	{Function} function
 	/// @arg	{Array} [arguments]
 	/// @arg	{String|Any} [tag]
-	static insert_next = function(_func, _args = undefined)
+	static insert_next = function(_func, _args = undefined, _tag = undefined)
 	{
 		var _item = new __Item(__convert_func(_func), _args, _tag);
-		array_insert(__items, __pos + 1, _item);
-		__length++;
-	}
-	#endregion
-	#region insert_append(function, [arguments], [tag]);
-	/// @func insert_append(function, [arguments], [tag]):
-	/// @desc Inserts a function at the end of the FunctionQueue.
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	static insert_append = function(_func, _args = undefined, _tag = undefined)
-	{
-		var _item = new __Item(__convert_func(_func), _args, _tag);
-		array_push(__items, _item);
+		array_insert(__items, __pos + __pos_next_offset, _item);
+		__pos_next_offset++;
 		__length++;
 	}
 	#endregion
@@ -241,6 +255,7 @@ function FunctionQueue(_owner = noone) constructor
 		__pos = clamp(__pos + _amount, 0, __length);
 	}
 	#endregion
+	//jump_to_position()
 	#region jump_to_tag(tag);
 	/// @func jump_to_tag(tag):
 	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
