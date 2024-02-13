@@ -1,15 +1,14 @@
 /// @func FunctionQueue():
 /// @desc Constructor for FunctionQueue.
-///	Last updated on February 2nd, 2024.
+///	Version: February 13nd, 2024.
 /// @arg	{Id.Instance} [owner]
 function FunctionQueue(_owner = noone) constructor
 {
 	#region PRIVATE
 	__items = [];
-	__instance = _owner;
-	__pos = -1;
-	__pos_next_offset = 1;
-	__length = 0;
+	__owner = noone;
+	__pos = 0;
+	__size = 0;
 	#endregion
 	#region __Item(function, arguments, tag);
 	/// @func __Item(function, arguments, tag);
@@ -23,14 +22,22 @@ function FunctionQueue(_owner = noone) constructor
 		tag  = _tag;
 	}
 	#endregion
-	#region __convert_func(function);
-	/// @func __convert_func(function):
-	/// @returns {Function|String}
-	static __convert_func = function(_function)
+	#region __convert_func(function, owner);
+	/// @func __convert_func(function, owner):
+	/// @arg	{Function} function
+	/// @arg	{Id.Instance|Struct} owner
+	/// @returns {Function|Method}
+	static __convert_func = function(_function, _owner)
 	{
-		if (__instance != undefined && instance_exists(__instance))
+		if (!is_callable(_function))	{ return _function; }
+		if (_owner == undefined)			{ return _function; }
+		if (instance_exists(_owner))
 		{
-			return method(__instance, _function);
+			return method(_owner, _function);
+		}
+		if (is_struct(_owner))
+		{
+			return method(_owner, _function);
 		}
 		return _function;
 	}
@@ -68,71 +75,42 @@ function FunctionQueue(_owner = noone) constructor
 		}
 	}
 	#endregion
-	#region __set_owner(instance);
-	/// @func set_owner(instance);
-	/// @desc Sets an instance to perform the functions.
-	/// Functions queued will be called as methods attached to this instance.
-	/// @arg	{Id.Instance} instance
-	static set_owner = function(_instance)
-	{
-		__instance = _instance;
-	}
-	#endregion
-	
-	#region size();
-	/// @func size():
-	/// @desc Returns the current size of the queue.
-	/// @returns {Real}
-	static size = function()
-	{
-		return __length;
-	}
-	#endregion
-	#region is_empty();
-	/// @func is_empty():
-	/// @desc Returns true if the FunctionQueue is empty.
+	#region __set_owner(owner);
+	/// @func __set_owner(owner);
+	/// @desc Sets an instance or struct to perform the functions.
+	/// Functions queued will be called as methods attached to this instance or struct.
+	/// Returns true if there is a valid owner.
+	/// @arg	{Id.Instance|Struct} owner
 	/// @returns {Bool}
-	static is_empty = function()
+	static __set_owner = function(_owner)
 	{
-		return (__length == 0);
+		if (instance_exists(_owner))
+		{
+			__owner = _owner;
+			return true;
+		}
+		if (is_struct(_owner) && !is_method(_owner))
+		{
+			__owner = _owner;
+			return true;
+		}
+		return false;
 	}
 	#endregion
-	#region reset();
-	/// @func reset():
-	/// @desc Go to the start of the FunctionQueue without changing the contents.
-	static reset = function()
+	__set_owner(_owner);
+	
+	#region push(function, [arguments], [tag], [owner]);
+	/// @func push(function, [arguments], [tag], [owner]):
+	/// @desc Add a function at the end of the FunctionQueue.
+	/// @arg	{Function} function
+	/// @arg	{Array} [arguments]
+	/// @arg	{String|Any} [tag]
+	/// @arg	{Id.Instance|Struct} [owner]
+	static push = function(_func, _args = undefined, _tag = undefined, _owner = __owner)
 	{
-		__pos = -1;
-		__pos_next_offset = 1;
-	}
-	#endregion
-	#region clear();
-	/// @func clear():
-	/// @desc Clear all and items, and reset to the start of the queue.
-	static clear = function()
-	{
-		__items = [];
-		__length = 0;
-		reset();
-	}
-	#endregion
-	#region clear_current();
-	/// @func clear_current():
-	/// @desc Cancels the current item.
-	static clear_current = function()
-	{
-		array_delete(__items, __pos, 1);
-		__pos--;
-		__length--;
-	}
-	#endregion
-	#region get_position();
-	/// @func get_position():
-	/// @desc Returns the current position of the FunctionQueue.
-	/// @returns {Real}
-	static get_position = function()
-	{
-		return __pos;
+		var _item = new __Item(__convert_func(_func, _owner), _args, _tag);
+		array_push(__items, _item);
+		__size++;
 	}
 	#endregion
 	#region update();
@@ -141,7 +119,7 @@ function FunctionQueue(_owner = noone) constructor
 	/// @returns {Bool}
 	static update = function()
 	{
-		if (is_empty())		{ return false; }
+		if (empty())			{ return false; }
 		if (__pos == -1)	{ __pos = 0; }
 		__pos_next_offset = 1;
 		
@@ -157,7 +135,7 @@ function FunctionQueue(_owner = noone) constructor
 		}
 		else
 		{
-			if (__instance != noone && !instance_exists(__instance))
+			if (__owner != noone && !instance_exists(__owner))
 			{
 				return false;
 			}
@@ -167,7 +145,7 @@ function FunctionQueue(_owner = noone) constructor
 		if (_done && __pos == _pos_init)
 		{
 			__pos++;
-			if (__pos >= __length)
+			if (__pos >= __size)
 			{
 				clear();
 				return false;
@@ -176,97 +154,21 @@ function FunctionQueue(_owner = noone) constructor
 			{
 				update();
 			}
-			return true;
 		}
+		return true;
 	}
 	#endregion
-	
-	#region insert_pos(pos, function, [arguments], [tag]);
-	/// @func insert_pos(pos, function, [arguments], [tag]);
-	/// @desc Inserts a function at a position.
-	/// @arg	{Real} pos
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	static insert_pos = function(_pos, _func, _args = undefined, _tag = undefined)
-	{
-		var _item = new __Item(__convert_func(_func), _args, _tag);
-		array_insert(__items, _pos, _item);
-		__length++;
-	}
-	#endregion
-	#region insert_append(function, [arguments], [tag]);
-	/// @func insert_append(function, [arguments], [tag]):
-	/// @desc Inserts a function at the end of the FunctionQueue.
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	static insert_append = function(_func, _args = undefined, _tag = undefined)
-	{
-		var _item = new __Item(__convert_func(_func), _args, _tag);
-		array_push(__items, _item);
-		__length++;
-	}
-	#endregion
-	#region insert_now(function, [arguments], [tag]);
-	/// @func insert_now(function, [arguments], [tag]):
-	/// @desc Inserts a function before the current position, interrupting the current function.
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	static insert_now = function(_func, _args = undefined, _tag = undefined)
-	{
-		var _item = new __Item(__convert_func(_func), _args, _tag);
-		if (__pos == -1) { __pos = 0; }
-		array_insert(__items, __pos, _item);
-		__length++;
-	}
-	#endregion
-	#region insert_next(function, [arguments], [tag]);
-	/// @func insert_next(function, [arguments], [tag]):
-	/// @desc Inserts a function after the current position.
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	static insert_next = function(_func, _args = undefined, _tag = undefined)
-	{
-		var _item = new __Item(__convert_func(_func), _args, _tag);
-		array_insert(__items, __pos + __pos_next_offset, _item);
-		__pos_next_offset++;
-		__length++;
-	}
-	#endregion
-	
-	#region jump_back();
-	/// @func jump_back():
-	/// @desc Moves the queue back an amount (1 by default).
-	/// @arg	{Real} [amount]
-	static jump_back = function(_amount = 1)
-	{
-		__pos = clamp(__pos - _amount, 0, __length);
-	}
-	#endregion
-	#region jump_forward();
-	/// @func jump_forward():
-	/// @desc Moves the queue forwarnd an amount (1 by default).
-	/// @arg	{Real} [amount]
-	static jump_forward = function(_amount = 1)
-	{
-		__pos = clamp(__pos + _amount, 0, __length);
-	}
-	#endregion
-	//jump_to_position()
-	#region jump_to_tag(tag);
-	/// @func jump_to_tag(tag):
+	#region goto(tag);
+	/// @func goto(tag):
 	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
 	/// It will wrap to the start at the end of the queue.
 	/// Returns true if it finds a match.
 	/// @arg	{String|Any} tag
 	/// @returns {Bool}
-	static jump_to_tag = function(_tag)
+	static goto = function(_tag)
 	{
 		var _initial_pos = __pos;
-		while (__pos < __length - 1)
+		while (__pos < __size - 1)
 		{
 			__pos ++;
 			var _item = __items[__pos];
@@ -289,21 +191,129 @@ function FunctionQueue(_owner = noone) constructor
 	}
 	#endregion
 	
+	#region size();
+	/// @func size():
+	/// @desc Returns the current size of the queue.
+	/// @returns {Real}
+	static size = function()
+	{
+		return __size;
+	}
+	#endregion
+	#region empty();
+	/// @func empty():
+	/// @desc Returns true if the FunctionQueue is empty.
+	/// @returns {Bool}
+	static empty = function()
+	{
+		return (__size == 0);
+	}
+	#endregion
+	#region reset();
+	/// @func reset():
+	/// @desc Go to the start of the FunctionQueue without changing the contents.
+	static reset = function()
+	{
+		__pos = -1;
+	}
+	#endregion
+	#region clear();
+	/// @func clear():
+	/// @desc Clear all and items, and reset to the start of the queue.
+	static clear = function()
+	{
+		__items = [];
+		__size = 0;
+		reset();
+	}
+	#endregion
 	#region print();
 	/// @func print();
 	/// @desc Outputs the contents of the FunctionQueue as a string. For debugging purposes only.
 	/// @returns {String}
 	static print = function()
 	{
-		if (__length == 0) { return "FunctionQueue: EMPTY"; }
+		if (__size == 0) { return "FunctionQueue: EMPTY"; }
 		
-		var _output = $"FunctionQueue (Size = {__length}):\n";
-		for (var i = 0; i < __length; i++)
+		var _output = $"FunctionQueue (Size = {__size}):\n";
+		for (var i = 0; i < __size; i++)
 		{
 			if (i == __pos) { _output += "> "; }
 			_output += string(__items[i]) + "\n";
 		}
 		return string_trim_end(_output);
+	}
+	#endregion
+	
+	#region ? clear_current();
+	/// @func clear_current():
+	/// @desc Cancels the current item.
+	static clear_current = function()
+	{
+		array_delete(__items, __pos, 1);
+		__pos--;
+		__size--;
+	}
+	#endregion
+	
+	#region ? insert_pos(pos, function, [arguments], [tag]); !
+	/// @func insert_pos(pos, function, [arguments], [tag]);
+	/// @desc Inserts a function at a position.
+	/// @arg	{Real} pos
+	/// @arg	{Function} function
+	/// @arg	{Array} [arguments]
+	/// @arg	{String|Any} [tag]
+	static insert_pos = function(_pos, _func, _args = undefined, _tag = undefined)
+	{
+		var _item = new __Item(__convert_func(_func), _args, _tag);
+		array_insert(__items, _pos, _item);
+		__size++;
+	}
+	#endregion
+	#region ? insert_now(function, [arguments], [tag]); !
+	/// @func insert_now(function, [arguments], [tag]):
+	/// @desc Inserts a function before the current position, interrupting the current function.
+	/// @arg	{Function} function
+	/// @arg	{Array} [arguments]
+	/// @arg	{String|Any} [tag]
+	static insert_now = function(_func, _args = undefined, _tag = undefined)
+	{
+		var _item = new __Item(__convert_func(_func), _args, _tag);
+		if (__pos == -1) { __pos = 0; }
+		array_insert(__items, __pos, _item);
+		__size++;
+	}
+	#endregion
+	#region ? insert_next(function, [arguments], [tag]); !
+	/// @func insert_next(function, [arguments], [tag]):
+	/// @desc Inserts a function after the current position.
+	/// @arg	{Function} function
+	/// @arg	{Array} [arguments]
+	/// @arg	{String|Any} [tag]
+	static insert_next = function(_func, _args = undefined)
+	{
+		var _item = new __Item(__convert_func(_func), _args, _tag);
+		array_insert(__items, __pos + 1, _item);
+		__size++;
+	}
+	#endregion
+	
+	#region ? jump_back();
+	/// @func jump_back():
+	/// @desc Moves the queue back an amount (1 by default).
+	/// @arg	{Real} [amount]
+	static jump_back = function(_amount = 1)
+	{
+		__pos = clamp(__pos - _amount, 0, __size);
+	}
+	#endregion
+	#region ? jump_forward();
+	/// @func jump_forward():
+	/// @desc Moves the queue forwarnd an amount (1 by default).
+	/// @arg	{Real} [amount]
+	static jump_forward = function(_amount = 1)
+	{
+		__pos = clamp(__pos + _amount, 0, __size);
 	}
 	#endregion
 }
