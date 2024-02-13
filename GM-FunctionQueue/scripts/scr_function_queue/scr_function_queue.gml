@@ -1,34 +1,44 @@
 /// @func FunctionQueue():
 /// @desc Constructor for FunctionQueue.
 ///	Version: February 13nd, 2024.
-/// @arg	{Id.Instance} [owner]
-function FunctionQueue(_owner = noone) constructor
+/// @arg	{Id.Instance|Struct} [owner] Instance or Struct. Context/scope to call functions. Default: undefined.
+/// @arg	{Bool} [persistent] If the queue automatically clears when it reaches the end. Default: false.
+/// @arg	{Bool} [temporary] If the items in the queue clear by default when they are finished. Default: false.
+function FunctionQueue(_owner = undefined, _persistent = false, _temporary = false) constructor
 {
 	#region PRIVATE
 	__items = [];
-	__owner = noone;
-	__pos = 0;
+	__pos = -1;
+	__pos_next = -1;
+	__pos_interrupt = -1;
 	__size = 0;
+	
+	__owner				= _owner;
+	__persistent	= _persistent;
+	__temporary		= _temporary;
 	#endregion
 	#region __Item(function, arguments, tag);
 	/// @func __Item(function, arguments, tag);
 	/// @arg	{Function} function
 	/// @arg	{Array} arguments
 	/// @arg	{String|Any} tag
-	static __Item = function(_function, _arguments, _tag) constructor
+	/// @arg	{ID.Instance|Struct|Undefined} owner
+	static __Item = function(_function, _arguments, _tag, _owner) constructor
 	{
-		func = _function;
-		args = _arguments;
-		tag  = _tag;
+		func	= _function;
+		args	= _arguments;
+		tag		= _tag;
+		owner	= _owner;
 	}
 	#endregion
 	#region __convert_func(function, owner);
 	/// @func __convert_func(function, owner):
 	/// @arg	{Function} function
 	/// @arg	{Id.Instance|Struct} owner
-	/// @returns {Function|Method}
+	/// @returns {Function}
 	static __convert_func = function(_function, _owner)
 	{
+		_owner ??= __owner;
 		if (!is_callable(_function))	{ return _function; }
 		if (_owner == undefined)			{ return _function; }
 		if (instance_exists(_owner))
@@ -75,119 +85,59 @@ function FunctionQueue(_owner = noone) constructor
 		}
 	}
 	#endregion
-	#region __set_owner(owner);
-	/// @func __set_owner(owner);
+	
+	#region set_owner(owner);
+	/// @func set_owner(owner);
 	/// @desc Sets an instance or struct to perform the functions.
 	/// Functions queued will be called as methods attached to this instance or struct.
 	/// Returns true if there is a valid owner.
 	/// @arg	{Id.Instance|Struct} owner
 	/// @returns {Bool}
-	static __set_owner = function(_owner)
+	static set_owner = function(_owner)
 	{
+		var _owner_previous = __owner;
+		
+		var _valid = false;
 		if (instance_exists(_owner))
 		{
 			__owner = _owner;
-			return true;
+			_valid = true;
 		}
-		if (is_struct(_owner) && !is_method(_owner))
+		else if (is_struct(_owner) && !is_method(_owner))
 		{
 			__owner = _owner;
-			return true;
-		}
-		return false;
-	}
-	#endregion
-	__set_owner(_owner);
-	
-	#region push(function, [arguments], [tag], [owner]);
-	/// @func push(function, [arguments], [tag], [owner]):
-	/// @desc Add a function at the end of the FunctionQueue.
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	/// @arg	{Id.Instance|Struct} [owner]
-	static push = function(_func, _args = undefined, _tag = undefined, _owner = __owner)
-	{
-		var _item = new __Item(__convert_func(_func, _owner), _args, _tag);
-		array_push(__items, _item);
-		__size++;
-	}
-	#endregion
-	#region update();
-	/// @func update();
-	/// @desc Run current function and update conditionally. Returns false if the FunctionQueue is empty/idle.
-	/// @returns {Bool}
-	static update = function()
-	{
-		if (empty())			{ return false; }
-		if (__pos == -1)	{ __pos = 0; }
-		__pos_next_offset = 1;
-		
-		var _item = __items[__pos];
-		var _func = _item.func;
-		var _args = _item.args;
-		var _done = false;
-		var _pos_init = __pos;
-		
-		if (!is_callable(_func))
-		{
-			_done = true;
-		}
-		else
-		{
-			if (__owner != noone && !instance_exists(__owner))
-			{
-				return false;
-			}
-			_done = bool(__call_function_ext(_func, _args) ?? true);
+			_valid = true;
 		}
 		
-		if (_done && __pos == _pos_init)
+		if (_valid && __owner != _owner_previous)
 		{
-			__pos++;
-			if (__pos >= __size)
+			for (var i = 0; i < __size; i++)
 			{
-				clear();
-				return false;
-			}
-			else
-			{
-				update();
+				var _item = __items[i];
+				if (is_undefined(_item.owner))
+				{
+					_item.func = __convert_func(_item.func, __owner);
+				}
 			}
 		}
-		return true;
+		return _valid;
 	}
 	#endregion
-	#region goto(tag);
-	/// @func goto(tag):
-	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
-	/// It will wrap to the start at the end of the queue.
-	/// Returns true if it finds a match.
-	/// @arg	{String|Any} tag
-	/// @returns {Bool}
-	static goto = function(_tag)
+	#region set_persistent(persistent);
+	/// @func set_persistent(persistent):
+	/// @desc Set if the queue automatically clears when it reaches the end.
+	/// @arg	{Bool} persistent
+	static set_persistent = function(_persistent)
 	{
-		var _initial_pos = __pos;
-		while (__pos < __size - 1)
-		{
-			__pos ++;
-			var _item = __items[__pos];
-			if (_item.tag == _tag)
-			{
-				return true;
-			}
-		}
-		__pos = -1;
-		while (__pos < _initial_pos)
-		{
-			__pos ++;
-			var _item = __items[__pos];
-			if (_item.tag == _tag)
-			{
-				return true;
-			}
-		}
-		return false;
+		__persistent = _persistent;
+	}
+	#endregion
+	#region ! set_temporary(temporary);
+	/// @func set_temporary(temporary):
+	/// @arg	{Bool} temporary
+	function set_temporary(_temporary)
+	{
+		__temporary = _temporary;
 	}
 	#endregion
 	
@@ -244,6 +194,109 @@ function FunctionQueue(_owner = noone) constructor
 		return string_trim_end(_output);
 	}
 	#endregion
+	
+	#region update();
+	/// @func update();
+	/// @desc Run current function and update conditionally. Returns false if the FunctionQueue is empty/idle.
+	/// @returns {Bool}
+	static update = function()
+	{
+		if (__size <= 0)			{ return false; }
+		if (__pos >= __size)	{ return false; }
+		if (__pos == -1)			{ __pos = 0; }
+		
+		var _item = __items[__pos];
+		var _func = _item.func;
+		var _args = _item.args;
+		var _pos_init = __pos;
+		var _done = false;
+		
+		if (!is_callable(_func))
+		{
+			_done = true;
+		}
+		else
+		{
+			if (!is_undefined(__owner) && !instance_exists(__owner))
+			{
+				return false;
+			}
+			_done = bool(__call_function_ext(_func, _args) ?? true);
+		}
+		
+		if (_done && __pos == _pos_init)
+		{
+			__pos++;
+			if (__pos >= __size)
+			{
+				if (!__persistent) { clear(); }
+				return false;
+			}
+			else
+			{
+				update();
+			}
+		}
+		return true;
+	}
+	#endregion
+	
+	//insert(position, function, [arguments], [tag], [owner]);
+		//Always maintains the current item. <= __pos: __pos++, > __pos: __pos = __pos.
+	#region push(function, [arguments], [tag], [owner]);
+	/// @func push(function, [arguments], [tag], [owner]):
+	/// @desc Add a function at the end of the FunctionQueue.
+	/// @arg	{Function} function
+	/// @arg	{Array} [arguments]
+	/// @arg	{String|Any} [tag]
+	/// @arg	{Id.Instance|Struct} [owner]
+	static push = function(_func, _args = undefined, _tag = undefined, _owner = undefined)
+	{
+		var _func_new = __convert_func(_func, _owner);
+		var _item = new __Item(_func_new, _args, _tag, _owner);
+		array_push(__items, _item);
+		__size++;
+	}
+	#endregion
+	//next(function, [arguments], [tag], [owner]);
+		//Within the same step, next will be added incrementally?
+	//interrupt(function, [arguments], [tag], [owner]);
+		//Within the same step, interrupt will be added incrementally?
+		
+	#region goto(tag);
+	/// @func goto(tag):
+	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
+	/// It will wrap to the start at the end of the queue.
+	/// Returns true if it finds a match.
+	/// @arg	{String|Any} tag
+	/// @returns {Bool}
+	static goto = function(_tag)
+	{
+		var _initial_pos = __pos;
+		while (__pos < __size - 1)
+		{
+			__pos ++;
+			var _item = __items[__pos];
+			if (_item.tag == _tag)
+			{
+				return true;
+			}
+		}
+		__pos = -1;
+		while (__pos < _initial_pos)
+		{
+			__pos ++;
+			var _item = __items[__pos];
+			if (_item.tag == _tag)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	#endregion
+	
+
 	
 	#region ? clear_current();
 	/// @func clear_current():
