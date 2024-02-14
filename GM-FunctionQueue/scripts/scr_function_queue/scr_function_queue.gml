@@ -3,7 +3,7 @@
 ///	Version: February 13nd, 2024.
 /// @arg	{Id.Instance|Struct} [owner] Instance or Struct. Context/scope to call functions. Default: undefined.
 /// @arg	{Bool} [persistent] If the queue automatically clears when it reaches the end. Default: false.
-/// @arg	{Bool} [temporary] If the items in the queue clear by default when they are finished. Default: false.
+/// @arg	{Bool} [temporary] If the queue clears items by default when they are finished. Default: false.
 function FunctionQueue(_owner = undefined, _persistent = false, _temporary = false) constructor
 {
 	#region PRIVATE
@@ -17,18 +17,21 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	__persistent	= _persistent;
 	__temporary		= _temporary;
 	#endregion
-	#region __Item(function, arguments, tag);
-	/// @func __Item(function, arguments, tag);
-	/// @arg	{Function} function
-	/// @arg	{Array} arguments
-	/// @arg	{String|Any} tag
-	/// @arg	{ID.Instance|Struct|Undefined} owner
-	static __Item = function(_function, _arguments, _tag, _owner) constructor
+	#region __Item(function, arguments, owner, temporary, tag);
+	/// @func __Item(function, arguments, owner, temporary, tag);
+	/// @arg	{Function}						function
+	/// @arg	{Array}								arguments
+	/// @arg	{ID.Instance|Struct}	owner
+	/// @arg	{Bool}								temporary
+	/// @arg	{String}							tag
+	/// @returns {Struct.__Item}
+	static __Item = function(_function, _arguments, _owner, _temporary, _tag) constructor
 	{
 		func	= _function;
 		args	= _arguments;
-		tag		= _tag;
 		owner	= _owner;
+		temp	= _temporary;
+		tag		= _tag;
 	}
 	#endregion
 	#region __convert_func(function, owner);
@@ -132,8 +135,9 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		__persistent = _persistent;
 	}
 	#endregion
-	#region ! set_temporary(temporary);
+	#region set_temporary(temporary);
 	/// @func set_temporary(temporary):
+	/// @desc Sets if the queue clears items by default when they are finished.
 	/// @arg	{Bool} temporary
 	function set_temporary(_temporary)
 	{
@@ -194,6 +198,15 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		return string_trim_end(_output);
 	}
 	#endregion
+	#region position();
+	/// @func position():
+	/// @desc Returns the current position of the FunctionQueue.
+	/// @returns {Real}
+	static position = function()
+	{
+		return __pos;
+	}
+	#endregion
 	
 	#region update();
 	/// @func update();
@@ -224,9 +237,22 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 			_done = bool(__call_function_ext(_func, _args) ?? true);
 		}
 		
-		if (_done && __pos == _pos_init)
+		if (_done)
 		{
-			__pos++;
+			if (_item.temp ?? __temporary)
+			{
+				array_delete(__items, _pos_init, 1);
+				__size--;
+				if (_pos_init < __pos)
+				{
+					__pos--;
+				}
+			}
+			else if (__pos == _pos_init)
+			{
+				__pos++;
+			}
+			
 			if (__pos >= __size)
 			{
 				if (!__persistent) { clear(); }
@@ -241,24 +267,39 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	
-	//insert(position, function, [arguments], [tag], [owner]);
-		//Always maintains the current item. <= __pos: __pos++, > __pos: __pos = __pos.
-	#region push(function, [arguments], [tag], [owner]);
-	/// @func push(function, [arguments], [tag], [owner]):
-	/// @desc Add a function at the end of the FunctionQueue.
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	/// @arg	{Id.Instance|Struct} [owner]
-	static push = function(_func, _args = undefined, _tag = undefined, _owner = undefined)
+	#region insert(position, function, [arguments], [owner], [temporary], [tag]);
+	/// @func insert(position, function, [arguments], [owner], [temporary], [tag]):
+	/// @arg	{Real}								position
+	/// @arg	{Function}						function
+	/// @arg	{Array}								arguments
+	/// @arg	{ID.Instance|Struct}	owner
+	/// @arg	{Bool}								temporary
+	/// @arg	{String}							tag
+	static insert = function(_pos, _func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
 	{
 		var _func_new = __convert_func(_func, _owner);
-		var _item = new __Item(_func_new, _args, _tag, _owner);
-		array_push(__items, _item);
-		__size++;
+		var _item = new __Item(_func_new, _args, _owner, _temporary, _tag);
+		array_insert(__items, _pos, _item); __size++;
+		if (_pos <= __pos) { __pos++; }
+		return _item;
 	}
 	#endregion
-	//next(function, [arguments], [tag], [owner]);
+	#region push(function, [arguments], [owner], [temporary], [tag]);
+	/// @func push(function, [arguments], [owner], [temporary], [tag]):
+	/// @arg	{Function}						function
+	/// @arg	{Array}								arguments
+	/// @arg	{ID.Instance|Struct}	owner
+	/// @arg	{Bool}								temporary
+	/// @arg	{String}							tag
+	static push = function(_func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
+	{
+		var _func_new = __convert_func(_func, _owner);
+		var _item = new __Item(_func_new, _args, _owner, _temporary, _tag);
+		array_push(__items, _item); __size++;
+		return _item;
+	}
+	#endregion
+	//next(function, [arguments], [tag], [owner], [tag]);
 		//Within the same step, next will be added incrementally?
 	//interrupt(function, [arguments], [tag], [owner]);
 		//Within the same step, interrupt will be added incrementally?
@@ -295,20 +336,25 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		return false;
 	}
 	#endregion
-	
-
-	
-	#region ? clear_current();
-	/// @func clear_current():
-	/// @desc Cancels the current item.
-	static clear_current = function()
+	#region jump_back();
+	/// @func jump_back():
+	/// @desc Moves the queue back an amount.
+	/// @arg	{Real} [amount] Default: 1
+	static jump_back = function(_amount = 1)
 	{
-		array_delete(__items, __pos, 1);
-		__pos--;
-		__size--;
+		__pos = clamp(__pos - _amount, 0, __size);
 	}
 	#endregion
-	
+	#region jump_forward();
+	/// @func jump_forward():
+	/// @desc Moves the queue forwarnd an amount.
+	/// @arg	{Real} [amount] Default: 1
+	static jump_forward = function(_amount = 1)
+	{
+		__pos = clamp(__pos + _amount, 0, __size);
+	}
+	#endregion
+
 	#region ? insert_pos(pos, function, [arguments], [tag]); !
 	/// @func insert_pos(pos, function, [arguments], [tag]);
 	/// @desc Inserts a function at a position.
@@ -351,22 +397,5 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	
-	#region ? jump_back();
-	/// @func jump_back():
-	/// @desc Moves the queue back an amount (1 by default).
-	/// @arg	{Real} [amount]
-	static jump_back = function(_amount = 1)
-	{
-		__pos = clamp(__pos - _amount, 0, __size);
-	}
-	#endregion
-	#region ? jump_forward();
-	/// @func jump_forward():
-	/// @desc Moves the queue forwarnd an amount (1 by default).
-	/// @arg	{Real} [amount]
-	static jump_forward = function(_amount = 1)
-	{
-		__pos = clamp(__pos + _amount, 0, __size);
-	}
-	#endregion
+
 }

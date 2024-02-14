@@ -1,5 +1,5 @@
 /// Example Player: Create
-my_fqueue = new FunctionQueue(id, true);
+my_fqueue = new FunctionQueue(id, true, false);
 
 structA = { name: "A" };
 structB = { name: "B" };

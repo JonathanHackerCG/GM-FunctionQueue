@@ -11,21 +11,8 @@ if (mouse_check_button_pressed(mb_left))
 
 if (mouse_check_button_pressed(mb_right))
 {
-	my_fqueue.push(step_towards_point, [mouse_x, mouse_y, 4]);
-	my_fqueue.push(function()
-	{
-		timer = 60;
-		my_fqueue.clear_current();
-	});
-	my_fqueue.push(function()
-	{
-		timer --;
-		if (timer == 0)
-		{
-			my_fqueue.clear_current();
-		}
-		return false;
-	});
+	my_fqueue.insert(my_fqueue.position() - 1, step_towards_point, [mouse_x, mouse_y, 8]);
+	my_fqueue.jump_back();
 }
 
 if (!my_fqueue.update())
