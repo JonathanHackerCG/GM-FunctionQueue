@@ -1,6 +1,6 @@
 /// @func FunctionQueue():
 /// @desc Constructor for FunctionQueue.
-///	Version: February 13nd, 2024.
+///	Version: February 14, 2024.
 /// @arg	{Id.Instance|Struct} [owner] Instance or Struct. Context/scope to call functions. Default: undefined.
 /// @arg	{Bool} [persistent]	If the queue automatically clears when it reaches the end. Default: false.
 /// @arg	{Bool} [temporary]	If the queue clears items by default when they are finished. Default: false.
@@ -204,7 +204,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	{
 		if (__size == 0) { return "FunctionQueue: EMPTY"; }
 		
-		var _output = $"FunctionQueue (Size = {__size}):\n";
+		var _output = "FunctionQueue (Size = " + string(__size) + "):\n";
 		for (var i = 0; i < __size; i++)
 		{
 			if (i == __index) { _output += "> "; }
@@ -259,14 +259,15 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		__index_next = 0;
 	}
 	#endregion
-	#region goto(tag);
-	/// @func goto(tag):
+	#region goto(tag, [loop]);
+	/// @func goto(tag, [loop]):
 	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
-	/// It will wrap to the start at the end of the queue.
+	/// If set to loop, it will wrap to the start at the end of the queue.
 	/// Returns true if it finds a match.
 	/// @arg	{String|Any} tag
+	/// @arg	{Bool} [loop] Default: false
 	/// @returns {Bool}
-	static goto = function(_tag)
+	static goto = function(_tag, _loop = false)
 	{
 		var _initial_pos = __index;
 		while (__index < __size - 1)
@@ -278,14 +279,17 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 				return true;
 			}
 		}
-		__index = -1;
-		while (__index < _initial_pos)
+		if (_loop)
 		{
-			__index ++;
-			var _item = __items[__index];
-			if (_item.tag == _tag)
+			__index = -1;
+			while (__index < _initial_pos)
 			{
-				return true;
+				__index ++;
+				var _item = __items[__index];
+				if (_item.tag == _tag)
+				{
+					return true;
+				}
 			}
 		}
 		return false;
@@ -298,9 +302,9 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	/// @returns {Bool}
 	static update = function()
 	{
-		if (__size <= 0)			{ return false; }
+		if (__size <= 0)				{ return false; }
 		if (__index >= __size)	{ return false; }
-		if (__index == -1)			{ __index = 0; }
+		if (__index == -1)			{ __index = 0;  }
 		
 		var _item = __items[__index];
 		var _func = _item.func;
