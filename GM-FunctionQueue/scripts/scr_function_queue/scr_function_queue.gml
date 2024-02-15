@@ -8,9 +8,8 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 {
 	#region PRIVATE
 	__items = [];
-	__pos = -1;
-	__pos_next = -1;
-	__pos_interrupt = -1;
+	__index = -1;
+	__index_next = 0;
 	__size = 0;
 	
 	__owner				= _owner;
@@ -184,7 +183,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	/// @desc Go to the start of the FunctionQueue without changing the contents.
 	static reset = function()
 	{
-		__pos = -1;
+		__index = -1;
 	}
 	#endregion
 	#region clear();
@@ -208,10 +207,10 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		var _output = $"FunctionQueue (Size = {__size}):\n";
 		for (var i = 0; i < __size; i++)
 		{
-			if (i == __pos) { _output += "> "; }
+			if (i == __index) { _output += "> "; }
 			_output += string(__items[i]) + "\n";
 		}
-		if (__pos == __size)
+		if (__index == __size)
 		{
 			_output += "> Waiting...";
 		}
@@ -219,43 +218,48 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	
-	#region get_position();
-	/// @func get_position():
-	/// @desc Returns the current position of the FunctionQueue.
+	#region get_index();
+	/// @func get_index():
+	/// @desc Returns the current index of the FunctionQueue.
 	/// @returns {Real}
-	static get_position = function()
+	static get_index = function()
 	{
-		return __pos;
+		return __index;
 	}
 	#endregion
-	#region set_position(position);
-	/// @func set_position(position):
-	/// @desc Sets the current position of the FunctionQueue.
-	/// A position of -1 will reset the queue from the beginning.
-	/// @arg	{Real} position
-	static set_position = function(_position)
+	#region set_index(index);
+	/// @func set_index(index):
+	/// @desc Sets the current index of the FunctionQueue.
+	/// A index of -1 will reset the queue from the beginning.
+	/// @arg	{Real} index
+	static set_index = function(_index)
 	{
-		__pos = clamp(_position, -1, __size);
+		if (_index == __index) { exit; }
+		
+		__index = clamp(_index, -1, __size);
+		__index_next = 0;
 	}
 	#endregion
-	#region change_position(amount, [wrap]);
-	/// @func change_position(amount, [wrap]):
-	/// @desc Changes the current position in the FunctionQueue by an amount.
+	#region change_index(amount, [wrap]);
+	/// @func change_index(amount, [wrap]):
+	/// @desc Changes the current index in the FunctionQueue by an amount.
 	/// @arg	{Real} amount
 	/// @arg	{Bool} [wrap]		Default: true
-	static change_position = function(_amount, _wrap = true)
+	static change_index = function(_amount, _wrap = true)
 	{
 		if (_amount == 0) { exit; }
 		if (_wrap)
 		{
-			__pos = __wrap(__pos + _amount, 0, __size);
+			__index = __wrap(__index + _amount, 0, __size);
 		}
 		else
 		{
-			__pos = clamp(__pos + _amount, 0, __size);
+			__index = clamp(__index + _amount, 0, __size);
 		}
+		__index_next = 0;
 	}
 	#endregion
+	//get_item(index); Undocumented
 	
 	#region update();
 	/// @func update();
@@ -264,13 +268,13 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	static update = function()
 	{
 		if (__size <= 0)			{ return false; }
-		if (__pos >= __size)	{ return false; }
-		if (__pos == -1)			{ __pos = 0; }
+		if (__index >= __size)	{ return false; }
+		if (__index == -1)			{ __index = 0; }
 		
-		var _item = __items[__pos];
+		var _item = __items[__index];
 		var _func = _item.func;
 		var _args = _item.args;
-		var _pos_init = __pos;
+		var _pos_init = __index;
 		var _done = false;
 		
 		if (!is_callable(_func))
@@ -292,17 +296,18 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 			{
 				array_delete(__items, _pos_init, 1);
 				__size--;
-				if (_pos_init < __pos)
+				if (_pos_init < __index)
 				{
-					__pos--;
+					__index--;
 				}
 			}
-			else if (__pos == _pos_init)
+			else if (__index == _pos_init)
 			{
-				__pos++;
+				__index++;
+				__index_next = 0;
 			}
 			
-			if (__pos >= __size)
+			if (__index >= __size)
 			{
 				if (!__persistent) { clear(); }
 				return false;
@@ -316,10 +321,10 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	
-	#region insert(position, function, [arguments], [owner], [temporary], [tag]);
-	/// @func insert(position, function, [arguments], [owner], [temporary], [tag]):
-	/// @desc Insert an item into the FunctionQueue at a position.
-	/// @arg	{Real}								position
+	#region insert(index, function, [arguments], [owner], [temporary], [tag]);
+	/// @func insert(index, function, [arguments], [owner], [temporary], [tag]):
+	/// @desc Insert an item into the FunctionQueue at a index.
+	/// @arg	{Real}								index
 	/// @arg	{Function}						function
 	/// @arg	{Array}								arguments
 	/// @arg	{ID.Instance|Struct}	owner
@@ -330,7 +335,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		var _func_new = __convert_func(_func, _owner);
 		var _item = new __Item(_func_new, _args, _owner, _temporary, _tag);
 		array_insert(__items, _pos, _item); __size++;
-		if (_pos <= __pos) { __pos++; }
+		if (_pos <= __index) { __index++; }
 		return _item;
 	}
 	#endregion
@@ -350,10 +355,9 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		return _item;
 	}
 	#endregion
+	//interrupt(function, [arguments], [tag], [owner]);
 	//next(function, [arguments], [tag], [owner], [tag]);
 		//Within the same step, next will be added incrementally?
-	//interrupt(function, [arguments], [tag], [owner]);
-		//Within the same step, interrupt will be added incrementally?
 	
 	#region goto(tag);
 	/// @func goto(tag):
@@ -364,21 +368,21 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	/// @returns {Bool}
 	static goto = function(_tag)
 	{
-		var _initial_pos = __pos;
-		while (__pos < __size - 1)
+		var _initial_pos = __index;
+		while (__index < __size - 1)
 		{
-			__pos ++;
-			var _item = __items[__pos];
+			__index ++;
+			var _item = __items[__index];
 			if (_item.tag == _tag)
 			{
 				return true;
 			}
 		}
-		__pos = -1;
-		while (__pos < _initial_pos)
+		__index = -1;
+		while (__index < _initial_pos)
 		{
-			__pos ++;
-			var _item = __items[__pos];
+			__index ++;
+			var _item = __items[__index];
 			if (_item.tag == _tag)
 			{
 				return true;
@@ -390,7 +394,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	
 	#region ? insert_pos(pos, function, [arguments], [tag]); !
 	/// @func insert_pos(pos, function, [arguments], [tag]);
-	/// @desc Inserts a function at a position.
+	/// @desc Inserts a function at a index.
 	/// @arg	{Real} pos
 	/// @arg	{Function} function
 	/// @arg	{Array} [arguments]
@@ -404,28 +408,28 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	#endregion
 	#region ? insert_now(function, [arguments], [tag]); !
 	/// @func insert_now(function, [arguments], [tag]):
-	/// @desc Inserts a function before the current position, interrupting the current function.
+	/// @desc Inserts a function before the current index, interrupting the current function.
 	/// @arg	{Function} function
 	/// @arg	{Array} [arguments]
 	/// @arg	{String|Any} [tag]
 	static insert_now = function(_func, _args = undefined, _tag = undefined)
 	{
 		var _item = new __Item(__convert_func(_func), _args, _tag);
-		if (__pos == -1) { __pos = 0; }
-		array_insert(__items, __pos, _item);
+		if (__index == -1) { __index = 0; }
+		array_insert(__items, __index, _item);
 		__size++;
 	}
 	#endregion
 	#region ? insert_next(function, [arguments], [tag]); !
 	/// @func insert_next(function, [arguments], [tag]):
-	/// @desc Inserts a function after the current position.
+	/// @desc Inserts a function after the current index.
 	/// @arg	{Function} function
 	/// @arg	{Array} [arguments]
 	/// @arg	{String|Any} [tag]
 	static insert_next = function(_func, _args = undefined)
 	{
 		var _item = new __Item(__convert_func(_func), _args, _tag);
-		array_insert(__items, __pos + 1, _item);
+		array_insert(__items, __index + 1, _item);
 		__size++;
 	}
 	#endregion

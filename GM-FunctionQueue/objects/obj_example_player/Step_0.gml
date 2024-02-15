@@ -11,8 +11,8 @@ if (mouse_check_button_pressed(mb_left))
 
 if (mouse_check_button_pressed(mb_right))
 {
-	my_fqueue.insert(my_fqueue.get_position(), step_towards_point, [mouse_x, mouse_y, 8]);
-	my_fqueue.change_position(-1);
+	my_fqueue.insert(my_fqueue.get_index(), step_towards_point, [mouse_x, mouse_y, 8]);
+	my_fqueue.change_index(-1);
 }
 
 if (!my_fqueue.update())
@@ -27,11 +27,11 @@ if (keyboard_check_pressed(ord("R")))
 }
 if (keyboard_check_pressed(vk_left))
 {
-	my_fqueue.change_position(-1);
+	my_fqueue.change_index(-1);
 }
 if (keyboard_check_pressed(vk_right))
 {
-	my_fqueue.change_position(1);
+	my_fqueue.change_index(1);
 }
 #endregion
 
@@ -46,7 +46,7 @@ if (keyboard_check_pressed(ord("B")))
 }
 if (keyboard_check_pressed(ord("X")))
 {
-	my_fqueue.insert(my_fqueue.get_position(), return_false, undefined, undefined, undefined, "X");
-	my_fqueue.change_position(-1);
+	my_fqueue.insert(my_fqueue.get_index(), return_false, undefined, undefined, undefined, "X");
+	my_fqueue.change_index(-1);
 }
 
