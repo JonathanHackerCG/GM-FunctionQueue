@@ -9,3 +9,13 @@ function step_towards_point(_x, _y, _speed)
 	
 	return (_disx < _speed && _disy < _speed);
 }
+
+function return_false()
+{
+	return false;
+}
+
+function return_true()
+{
+	return true;
+}
