@@ -2,8 +2,8 @@
 /// @desc Constructor for FunctionQueue.
 ///	Version: February 13nd, 2024.
 /// @arg	{Id.Instance|Struct} [owner] Instance or Struct. Context/scope to call functions. Default: undefined.
-/// @arg	{Bool} [persistent] If the queue automatically clears when it reaches the end. Default: false.
-/// @arg	{Bool} [temporary] If the queue clears items by default when they are finished. Default: false.
+/// @arg	{Bool} [persistent]	If the queue automatically clears when it reaches the end. Default: false.
+/// @arg	{Bool} [temporary]	If the queue clears items by default when they are finished. Default: false.
 function FunctionQueue(_owner = undefined, _persistent = false, _temporary = false) constructor
 {
 	#region PRIVATE
@@ -86,6 +86,22 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 			case 12: return _function(_args[0], _args[1], _args[2], _args[3], _args[4], _args[5], _args[6], _args[7], _args[8], _args[9], _args[10], _args[11]);
 			default: show_error("Too many parameters for __call_function_ext.", false); return false;
 		}
+	}
+	#endregion
+	#region __wrap(value, min, max);
+	/// @func __wrap(value, min, max):
+	/// @desc Returns a value, wrapping it between two values.
+	/// CREDIT: GMLscripts.com/license
+	/// @arg	{Real} value
+	/// @arg	{Real} min
+	/// @arg	{Real} max
+	/// @returns {Real}
+	function __wrap(_value, _min, _max)
+	{
+		if (_max - _min == 0) { return _min; }
+		var _mod = (_value - _min) % (_max - _min);
+		if (_mod < 0) { return _mod + _max }
+		else { return _mod + _min };
 	}
 	#endregion
 	
@@ -195,16 +211,49 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 			if (i == __pos) { _output += "> "; }
 			_output += string(__items[i]) + "\n";
 		}
+		if (__pos == __size)
+		{
+			_output += "> Waiting...";
+		}
 		return string_trim_end(_output);
 	}
 	#endregion
-	#region position();
-	/// @func position():
+	
+	#region get_position();
+	/// @func get_position():
 	/// @desc Returns the current position of the FunctionQueue.
 	/// @returns {Real}
-	static position = function()
+	static get_position = function()
 	{
 		return __pos;
+	}
+	#endregion
+	#region set_position(position);
+	/// @func set_position(position):
+	/// @desc Sets the current position of the FunctionQueue.
+	/// A position of -1 will reset the queue from the beginning.
+	/// @arg	{Real} position
+	static set_position = function(_position)
+	{
+		__pos = clamp(_position, -1, __size);
+	}
+	#endregion
+	#region change_position(amount, [wrap]);
+	/// @func change_position(amount, [wrap]):
+	/// @desc Changes the current position in the FunctionQueue by an amount.
+	/// @arg	{Real} amount
+	/// @arg	{Bool} [wrap]		Default: true
+	static change_position = function(_amount, _wrap = true)
+	{
+		if (_amount == 0) { exit; }
+		if (_wrap)
+		{
+			__pos = __wrap(__pos + _amount, 0, __size);
+		}
+		else
+		{
+			__pos = clamp(__pos + _amount, 0, __size);
+		}
 	}
 	#endregion
 	
@@ -269,6 +318,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	
 	#region insert(position, function, [arguments], [owner], [temporary], [tag]);
 	/// @func insert(position, function, [arguments], [owner], [temporary], [tag]):
+	/// @desc Insert an item into the FunctionQueue at a position.
 	/// @arg	{Real}								position
 	/// @arg	{Function}						function
 	/// @arg	{Array}								arguments
@@ -286,6 +336,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	#endregion
 	#region push(function, [arguments], [owner], [temporary], [tag]);
 	/// @func push(function, [arguments], [owner], [temporary], [tag]):
+	/// @desc Insert an item at the end of the FunctionQueue.
 	/// @arg	{Function}						function
 	/// @arg	{Array}								arguments
 	/// @arg	{ID.Instance|Struct}	owner
@@ -303,7 +354,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		//Within the same step, next will be added incrementally?
 	//interrupt(function, [arguments], [tag], [owner]);
 		//Within the same step, interrupt will be added incrementally?
-		
+	
 	#region goto(tag);
 	/// @func goto(tag):
 	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
@@ -336,25 +387,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		return false;
 	}
 	#endregion
-	#region jump_back();
-	/// @func jump_back():
-	/// @desc Moves the queue back an amount.
-	/// @arg	{Real} [amount] Default: 1
-	static jump_back = function(_amount = 1)
-	{
-		__pos = clamp(__pos - _amount, 0, __size);
-	}
-	#endregion
-	#region jump_forward();
-	/// @func jump_forward():
-	/// @desc Moves the queue forwarnd an amount.
-	/// @arg	{Real} [amount] Default: 1
-	static jump_forward = function(_amount = 1)
-	{
-		__pos = clamp(__pos + _amount, 0, __size);
-	}
-	#endregion
-
+	
 	#region ? insert_pos(pos, function, [arguments], [tag]); !
 	/// @func insert_pos(pos, function, [arguments], [tag]);
 	/// @desc Inserts a function at a position.
@@ -396,6 +429,4 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		__size++;
 	}
 	#endregion
-	
-
 }
