@@ -1,9 +1,11 @@
+/// Feather ignore all
+
 /// @func FunctionQueue():
 /// @desc Constructor for FunctionQueue.
-///	Version: February 14, 2024.
+///	Version: February 15, 2024.
 /// @arg	{Id.Instance|Struct} [owner] Instance or Struct. Context/scope to call functions. Default: undefined.
-/// @arg	{Bool} [persistent]	If the queue automatically clears when it reaches the end. Default: false.
-/// @arg	{Bool} [temporary]	If the queue clears items by default when they are finished. Default: false.
+/// @arg	{Bool} [persistent]	If persistent, the queue will not automatically clear when it reaches the end. Default: false.
+/// @arg	{Bool} [temporary]	If temporary, the items in the queue will be cleared by default when they finish. Default: false.
 function FunctionQueue(_owner = undefined, _persistent = false, _temporary = false) constructor
 {
 	#region PRIVATE
@@ -41,17 +43,24 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	static __convert_func = function(_function, _owner)
 	{
 		_owner ??= __owner;
-		if (!is_callable(_function))	{ return _function; }
-		if (_owner == undefined)			{ return _function; }
-		if (instance_exists(_owner))
+		try
 		{
-			return method(_owner, _function);
+			if (is_undefined(_function))	{ return _function; }
+			if (_owner == undefined)			{ return _function; }
+			if (instance_exists(_owner))
+			{
+				return method(_owner, _function);
+			}
+			if (is_struct(_owner))
+			{
+				return method(_owner, _function);
+			}
+			return _function;
 		}
-		if (is_struct(_owner))
+		catch (_exception)
 		{
-			return method(_owner, _function);
+			show_error("FunctionQueue invalid function \"" + string(_function) + "\"\nExpected a callable function, method, or undefined.", true);
 		}
-		return _function;
 	}
 	#endregion
 	#region __call_function_ext(function, params);
@@ -101,6 +110,66 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		var _mod = (_value - _min) % (_max - _min);
 		if (_mod < 0) { return _mod + _max }
 		else { return _mod + _min };
+	}
+	#endregion
+	
+	#region update();
+	/// @func update();
+	/// @desc Run current function and update conditionally. Returns false if the FunctionQueue is empty/idle.
+	/// @returns {Bool}
+	static update = function()
+	{
+		if (__size <= 0)				{ return false; }
+		if (__index >= __size)	{ return false; }
+		if (__index == -1)			{ __index = 0;  }
+		
+		var _item = __items[__index];
+		var _func = _item.func;
+		var _args = _item.args;
+		var _pos_init = __index;
+		var _done = false;
+		
+		if (is_undefined(_func))
+		{
+			_done = true;
+		}
+		else
+		{
+			if (!is_undefined(__owner) && !instance_exists(__owner))
+			{
+				return false;
+			}
+			_done = bool(__call_function_ext(_func, _args) ?? true);
+		}
+		
+		if (_done)
+		{
+			if (_item.temp ?? __temporary)
+			{
+				array_delete(__items, _pos_init, 1);
+				__size--;
+				if (_pos_init < __index)
+				{
+					__index--;
+				}
+			}
+			else if (__index == _pos_init)
+			{
+				__index++;
+				__index_next = 0;
+			}
+			
+			if (__index >= __size)
+			{
+				if (!__persistent) { clear(); }
+				return false;
+			}
+			else
+			{
+				update();
+			}
+		}
+		return true;
 	}
 	#endregion
 	
@@ -162,7 +231,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	
 	#region size();
 	/// @func size():
-	/// @desc Returns the current size of the queue.
+	/// @desc Returns the current size of the FunctionQueue.
 	/// @returns {Real}
 	static size = function()
 	{
@@ -230,7 +299,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	#region set_index(index);
 	/// @func set_index(index):
 	/// @desc Sets the current index of the FunctionQueue.
-	/// A index of -1 will reset the queue from the beginning.
+	/// An index of -1 will reset the queue from the beginning.
 	/// @arg	{Real} index
 	static set_index = function(_index)
 	{
@@ -293,66 +362,6 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 			}
 		}
 		return false;
-	}
-	#endregion
-	
-	#region update();
-	/// @func update();
-	/// @desc Run current function and update conditionally. Returns false if the FunctionQueue is empty/idle.
-	/// @returns {Bool}
-	static update = function()
-	{
-		if (__size <= 0)				{ return false; }
-		if (__index >= __size)	{ return false; }
-		if (__index == -1)			{ __index = 0;  }
-		
-		var _item = __items[__index];
-		var _func = _item.func;
-		var _args = _item.args;
-		var _pos_init = __index;
-		var _done = false;
-		
-		if (!is_callable(_func))
-		{
-			_done = true;
-		}
-		else
-		{
-			if (!is_undefined(__owner) && !instance_exists(__owner))
-			{
-				return false;
-			}
-			_done = bool(__call_function_ext(_func, _args) ?? true);
-		}
-		
-		if (_done)
-		{
-			if (_item.temp ?? __temporary)
-			{
-				array_delete(__items, _pos_init, 1);
-				__size--;
-				if (_pos_init < __index)
-				{
-					__index--;
-				}
-			}
-			else if (__index == _pos_init)
-			{
-				__index++;
-				__index_next = 0;
-			}
-			
-			if (__index >= __size)
-			{
-				if (!__persistent) { clear(); }
-				return false;
-			}
-			else
-			{
-				update();
-			}
-		}
-		return true;
 	}
 	#endregion
 	
@@ -419,7 +428,6 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		return _item;
 	}
 	#endregion
-	
 	#region get_item(index);
 	/// @func get_item(index):
 	/// @desc Returns an item (Struct.__Item) at an index in the FunctionQueue.
