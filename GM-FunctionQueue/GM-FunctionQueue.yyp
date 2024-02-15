@@ -22,7 +22,6 @@
   },
   "resources": [
     {"id":{"name":"FunctionQueue","path":"scripts/FunctionQueue/FunctionQueue.yy",},},
-    {"id":{"name":"FunctionQueue_LTS","path":"scripts/FunctionQueue_LTS/FunctionQueue_LTS.yy",},},
     {"id":{"name":"spr_example_player","path":"sprites/spr_example_player/spr_example_player.yy",},},
     {"id":{"name":"obj_control","path":"objects/obj_control/obj_control.yy",},},
     {"id":{"name":"obj_example_player","path":"objects/obj_example_player/obj_example_player.yy",},},
