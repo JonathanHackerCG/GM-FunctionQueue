@@ -11,8 +11,22 @@ if (mouse_check_button_pressed(mb_left))
 
 if (mouse_check_button_pressed(mb_right))
 {
-	my_fqueue.insert(my_fqueue.get_index(), step_towards_point, [mouse_x, mouse_y, 8]);
-	my_fqueue.change_index(-1);
+	my_fqueue.interrupt(step_towards_point, [mouse_x, mouse_y, 8], undefined, true);
+}
+
+if (keyboard_check_pressed(vk_space))
+{
+	my_fqueue.interrupt(show_debug_message, ["Paused..."], undefined, true);
+	my_fqueue.next(function()
+	{
+		timer = 60;
+	}, undefined, undefined, true);
+	my_fqueue.next(function()
+	{
+		timer--;
+		return (timer == 0);
+	}, undefined, undefined, true);
+	my_fqueue.next(show_debug_message, ["Resume!"], undefined, true);
 }
 
 if (!my_fqueue.update())

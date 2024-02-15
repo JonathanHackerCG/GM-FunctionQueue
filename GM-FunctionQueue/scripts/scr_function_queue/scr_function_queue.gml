@@ -259,7 +259,38 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 		__index_next = 0;
 	}
 	#endregion
-	//get_item(index); Undocumented
+	#region goto(tag);
+	/// @func goto(tag):
+	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
+	/// It will wrap to the start at the end of the queue.
+	/// Returns true if it finds a match.
+	/// @arg	{String|Any} tag
+	/// @returns {Bool}
+	static goto = function(_tag)
+	{
+		var _initial_pos = __index;
+		while (__index < __size - 1)
+		{
+			__index ++;
+			var _item = __items[__index];
+			if (_item.tag == _tag)
+			{
+				return true;
+			}
+		}
+		__index = -1;
+		while (__index < _initial_pos)
+		{
+			__index ++;
+			var _item = __items[__index];
+			if (_item.tag == _tag)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	#endregion
 	
 	#region update();
 	/// @func update();
@@ -349,88 +380,50 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	/// @arg	{String}							tag
 	static push = function(_func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
 	{
-		var _func_new = __convert_func(_func, _owner);
-		var _item = new __Item(_func_new, _args, _owner, _temporary, _tag);
-		array_push(__items, _item); __size++;
+		var _item = insert(__size, _func, _args, _owner, _temporary, _tag);
 		return _item;
 	}
 	#endregion
-	//interrupt(function, [arguments], [tag], [owner]);
-	//next(function, [arguments], [tag], [owner], [tag]);
-		//Within the same step, next will be added incrementally?
-	
-	#region goto(tag);
-	/// @func goto(tag):
-	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
-	/// It will wrap to the start at the end of the queue.
-	/// Returns true if it finds a match.
-	/// @arg	{String|Any} tag
-	/// @returns {Bool}
-	static goto = function(_tag)
+	#region interrupt(function, [arguments], [owner], [temporary], [tag]);
+	/// @func interrupt(function, [arguments], [owner], [temporary], [tag]):
+	/// @desc Interrupt the current item with a new one. The original item will resume after this one.
+	/// @arg	{Function}						function
+	/// @arg	{Array}								arguments
+	/// @arg	{ID.Instance|Struct}	owner
+	/// @arg	{Bool}								temporary
+	/// @arg	{String}							tag
+	static interrupt = function(_func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
 	{
-		var _initial_pos = __index;
-		while (__index < __size - 1)
-		{
-			__index ++;
-			var _item = __items[__index];
-			if (_item.tag == _tag)
-			{
-				return true;
-			}
-		}
-		__index = -1;
-		while (__index < _initial_pos)
-		{
-			__index ++;
-			var _item = __items[__index];
-			if (_item.tag == _tag)
-			{
-				return true;
-			}
-		}
-		return false;
+		var _item = insert(get_index(), _func, _args, _owner, _temporary, _tag);
+		change_index(-1);
+		return _item;
+	}
+	#endregion
+	#region next(function, [arguments], [owner], [temporary], [tag]);
+	/// @func next(function, [arguments], [owner], [temporary], [tag]):
+	/// @desc Insert an item immediately after the current item.
+	/// Calling this method repeatedly will add each new item after the previous, until the index changes.
+	/// @arg	{Function}						function
+	/// @arg	{Array}								arguments
+	/// @arg	{ID.Instance|Struct}	owner
+	/// @arg	{Bool}								temporary
+	/// @arg	{String}							tag
+	static next = function(_func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
+	{
+		var _item = insert(__index + 1 + __index_next, _func, _args, _owner, _temporary, _tag);
+		__index_next++;
+		return _item;
 	}
 	#endregion
 	
-	#region ? insert_pos(pos, function, [arguments], [tag]); !
-	/// @func insert_pos(pos, function, [arguments], [tag]);
-	/// @desc Inserts a function at a index.
-	/// @arg	{Real} pos
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	static insert_pos = function(_pos, _func, _args = undefined, _tag = undefined)
+	#region get_item(index);
+	/// @func get_item(index):
+	/// @desc Returns an item (Struct.__Item) at an index in the FunctionQueue.
+	/// This feature is not officially supported. It's available if you want to do something weird.
+	/// @returns {Struct.__Item}
+	static get_item = function(_index)
 	{
-		var _item = new __Item(__convert_func(_func), _args, _tag);
-		array_insert(__items, _pos, _item);
-		__size++;
-	}
-	#endregion
-	#region ? insert_now(function, [arguments], [tag]); !
-	/// @func insert_now(function, [arguments], [tag]):
-	/// @desc Inserts a function before the current index, interrupting the current function.
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	static insert_now = function(_func, _args = undefined, _tag = undefined)
-	{
-		var _item = new __Item(__convert_func(_func), _args, _tag);
-		if (__index == -1) { __index = 0; }
-		array_insert(__items, __index, _item);
-		__size++;
-	}
-	#endregion
-	#region ? insert_next(function, [arguments], [tag]); !
-	/// @func insert_next(function, [arguments], [tag]):
-	/// @desc Inserts a function after the current index.
-	/// @arg	{Function} function
-	/// @arg	{Array} [arguments]
-	/// @arg	{String|Any} [tag]
-	static insert_next = function(_func, _args = undefined)
-	{
-		var _item = new __Item(__convert_func(_func), _args, _tag);
-		array_insert(__items, __index + 1, _item);
-		__size++;
+		return __items[_index];
 	}
 	#endregion
 }
