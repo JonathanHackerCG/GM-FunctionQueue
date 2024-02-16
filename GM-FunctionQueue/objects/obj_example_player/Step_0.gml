@@ -16,6 +16,8 @@ if (keyboard_check_pressed(vk_right))
 #endregion
 
 //Instance
+
+
 if (mouse_check_button_pressed(mb_left))
 {
 	my_fqueue.push(step_towards_point, [mouse_x, mouse_y, 4]);
@@ -23,7 +25,6 @@ if (mouse_check_button_pressed(mb_left))
 
 if (keyboard_check_pressed(vk_space))
 {
-	my_fqueue.interrupt(show_debug_message, ["Paused..."], undefined, true);
 	my_fqueue.next(function()
 	{
 		timer = 60;
@@ -33,7 +34,6 @@ if (keyboard_check_pressed(vk_space))
 		timer--;
 		return (timer == 0);
 	}, undefined, undefined, true);
-	my_fqueue.next(show_debug_message, ["Resume!"], undefined, true);
 }
 
 if (!my_fqueue.update())

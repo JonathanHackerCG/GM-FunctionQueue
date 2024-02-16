@@ -2,7 +2,7 @@
 
 /// @func FunctionQueue():
 /// @desc Constructor for FunctionQueue.
-///	Version: February 15, 2024.
+///	Version: February 15, 2024. https://github.com/JonathanHackerCG/GM-FunctionQueue
 /// @arg	{Id.Instance|Struct} [owner] Instance or Struct. Context/scope to call functions. Default: undefined.
 /// @arg	{Bool} [persistent]	If persistent, the queue will not automatically clear when it reaches the end. Default: false.
 /// @arg	{Bool} [temporary]	If temporary, the items in the queue will be cleared by default when they finish. Default: false.
@@ -19,13 +19,13 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	__temporary		= _temporary;
 	#endregion
 	#region __Item(function, arguments, owner, temporary, tag);
-	/// @func __Item(function, arguments, owner, temporary, tag);
 	/// @arg	{Function}						function
 	/// @arg	{Array}								arguments
 	/// @arg	{ID.Instance|Struct}	owner
 	/// @arg	{Bool}								temporary
 	/// @arg	{String}							tag
 	/// @returns {Struct.__Item}
+	/// @context FunctionQueue
 	static __Item = function(_function, _arguments, _owner, _temporary, _tag) constructor
 	{
 		func	= _function;
@@ -36,10 +36,10 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region __convert_func(function, owner);
-	/// @func __convert_func(function, owner):
 	/// @arg	{Function} function
 	/// @arg	{Id.Instance|Struct} owner
 	/// @returns {Function}
+	/// @context FunctionQueue
 	static __convert_func = function(_function, _owner)
 	{
 		_owner ??= __owner;
@@ -64,11 +64,11 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region __call_function_ext(function, params);
-	/// @func __call_function_ext(function, params);
 	/// @desc Runs a function/method with an Array of parameters.
 	/// @arg	{Function} function
 	/// @arg	{Array} parameters
 	/// @returns {Any}
+	/// @context FunctionQueue
 	function __call_function_ext(_function, _args)
 	{
 		if (is_undefined(_args))
@@ -97,13 +97,13 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region __wrap(value, min, max);
-	/// @func __wrap(value, min, max):
 	/// @desc Returns a value, wrapping it between two values.
 	/// CREDIT: GMLscripts.com/license
 	/// @arg	{Real} value
 	/// @arg	{Real} min
 	/// @arg	{Real} max
 	/// @returns {Real}
+	/// @context FunctionQueue
 	function __wrap(_value, _min, _max)
 	{
 		if (_max - _min == 0) { return _min; }
@@ -114,9 +114,9 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	#endregion
 	
 	#region update();
-	/// @func update();
 	/// @desc Run current function and update conditionally. Returns false if the FunctionQueue is empty/idle.
 	/// @returns {Bool}
+	/// @context FunctionQueue
 	static update = function()
 	{
 		if (__size <= 0)				{ return false; }
@@ -174,12 +174,12 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	#endregion
 	
 	#region set_owner(owner);
-	/// @func set_owner(owner);
 	/// @desc Sets an instance or struct to perform the functions.
 	/// Functions queued will be called as methods attached to this instance or struct.
 	/// Returns true if there is a valid owner.
 	/// @arg	{Id.Instance|Struct} owner
 	/// @returns {Bool}
+	/// @context FunctionQueue
 	static set_owner = function(_owner)
 	{
 		var _owner_previous = __owner;
@@ -211,18 +211,18 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region set_persistent(persistent);
-	/// @func set_persistent(persistent):
 	/// @desc Set if the queue automatically clears when it reaches the end.
 	/// @arg	{Bool} persistent
+	/// @context FunctionQueue
 	static set_persistent = function(_persistent)
 	{
 		__persistent = _persistent;
 	}
 	#endregion
 	#region set_temporary(temporary);
-	/// @func set_temporary(temporary):
 	/// @desc Sets if the queue clears items by default when they are finished.
 	/// @arg	{Bool} temporary
+	/// @context FunctionQueue
 	function set_temporary(_temporary)
 	{
 		__temporary = _temporary;
@@ -230,34 +230,34 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	#endregion
 	
 	#region size();
-	/// @func size():
 	/// @desc Returns the current size of the FunctionQueue.
 	/// @returns {Real}
+	/// @context FunctionQueue
 	static size = function()
 	{
 		return __size;
 	}
 	#endregion
 	#region empty();
-	/// @func empty():
 	/// @desc Returns true if the FunctionQueue is empty.
 	/// @returns {Bool}
+	/// @context FunctionQueue
 	static empty = function()
 	{
 		return (__size == 0);
 	}
 	#endregion
 	#region reset();
-	/// @func reset():
 	/// @desc Go to the start of the FunctionQueue without changing the contents.
+	/// @context FunctionQueue
 	static reset = function()
 	{
 		__index = -1;
 	}
 	#endregion
 	#region clear();
-	/// @func clear():
 	/// @desc Clear all and items, and reset to the start of the queue.
+	/// @context FunctionQueue
 	static clear = function()
 	{
 		__items = [];
@@ -266,9 +266,9 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region print();
-	/// @func print();
 	/// @desc Outputs the contents of the FunctionQueue as a string. For debugging purposes only.
 	/// @returns {String}
+	/// @context FunctionQueue
 	static print = function()
 	{
 		if (__size == 0) { return "FunctionQueue: EMPTY"; }
@@ -288,19 +288,19 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	#endregion
 	
 	#region get_index();
-	/// @func get_index():
 	/// @desc Returns the current index of the FunctionQueue.
 	/// @returns {Real}
+	/// @context FunctionQueue
 	static get_index = function()
 	{
 		return __index;
 	}
 	#endregion
 	#region set_index(index);
-	/// @func set_index(index):
 	/// @desc Sets the current index of the FunctionQueue.
 	/// An index of -1 will reset the queue from the beginning.
 	/// @arg	{Real} index
+	/// @context FunctionQueue
 	static set_index = function(_index)
 	{
 		if (_index == __index) { exit; }
@@ -310,10 +310,10 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region change_index(amount, [wrap]);
-	/// @func change_index(amount, [wrap]):
 	/// @desc Changes the current index in the FunctionQueue by an amount.
 	/// @arg	{Real} amount
 	/// @arg	{Bool} [wrap]		Default: true
+	/// @context FunctionQueue
 	static change_index = function(_amount, _wrap = true)
 	{
 		if (_amount == 0) { exit; }
@@ -329,13 +329,13 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region goto(tag, [loop]);
-	/// @func goto(tag, [loop]):
 	/// @desc Moves the FunctionQueue forward until it reaches a matching tag.
 	/// If set to loop, it will wrap to the start at the end of the queue.
 	/// Returns true if it finds a match.
 	/// @arg	{String|Any} tag
 	/// @arg	{Bool} [loop] Default: false
 	/// @returns {Bool}
+	/// @context FunctionQueue
 	static goto = function(_tag, _loop = false)
 	{
 		var _initial_pos = __index;
@@ -366,7 +366,6 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	#endregion
 	
 	#region insert(index, function, [arguments], [owner], [temporary], [tag]);
-	/// @func insert(index, function, [arguments], [owner], [temporary], [tag]):
 	/// @desc Insert an item into the FunctionQueue at a index.
 	/// @arg	{Real}								index
 	/// @arg	{Function}						function
@@ -374,6 +373,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	/// @arg	{ID.Instance|Struct}	owner
 	/// @arg	{Bool}								temporary
 	/// @arg	{String}							tag
+	/// @context FunctionQueue
 	static insert = function(_pos, _func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
 	{
 		var _func_new = __convert_func(_func, _owner);
@@ -384,13 +384,13 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region push(function, [arguments], [owner], [temporary], [tag]);
-	/// @func push(function, [arguments], [owner], [temporary], [tag]):
 	/// @desc Insert an item at the end of the FunctionQueue.
 	/// @arg	{Function}						function
 	/// @arg	{Array}								arguments
 	/// @arg	{ID.Instance|Struct}	owner
 	/// @arg	{Bool}								temporary
 	/// @arg	{String}							tag
+	/// @context FunctionQueue
 	static push = function(_func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
 	{
 		var _item = insert(__size, _func, _args, _owner, _temporary, _tag);
@@ -398,13 +398,13 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region interrupt(function, [arguments], [owner], [temporary], [tag]);
-	/// @func interrupt(function, [arguments], [owner], [temporary], [tag]):
 	/// @desc Interrupt the current item with a new one. The original item will resume after this one.
 	/// @arg	{Function}						function
 	/// @arg	{Array}								arguments
 	/// @arg	{ID.Instance|Struct}	owner
 	/// @arg	{Bool}								temporary
 	/// @arg	{String}							tag
+	/// @context FunctionQueue
 	static interrupt = function(_func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
 	{
 		var _item = insert(get_index(), _func, _args, _owner, _temporary, _tag);
@@ -413,7 +413,6 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region next(function, [arguments], [owner], [temporary], [tag]);
-	/// @func next(function, [arguments], [owner], [temporary], [tag]):
 	/// @desc Insert an item immediately after the current item.
 	/// Calling this method repeatedly will add each new item after the previous, until the index changes.
 	/// @arg	{Function}						function
@@ -421,6 +420,7 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	/// @arg	{ID.Instance|Struct}	owner
 	/// @arg	{Bool}								temporary
 	/// @arg	{String}							tag
+	/// @context FunctionQueue
 	static next = function(_func, _args = undefined, _owner = undefined, _temporary = undefined, _tag = undefined)
 	{
 		var _item = insert(__index + 1 + __index_next, _func, _args, _owner, _temporary, _tag);
@@ -429,10 +429,10 @@ function FunctionQueue(_owner = undefined, _persistent = false, _temporary = fal
 	}
 	#endregion
 	#region get_item(index);
-	/// @func get_item(index):
 	/// @desc Returns an item (Struct.__Item) at an index in the FunctionQueue.
 	/// This feature is not officially supported. It's available if you want to do something weird.
 	/// @returns {Struct.__Item}
+	/// @context FunctionQueue
 	static get_item = function(_index)
 	{
 		return __items[_index];
